@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VacuNet - Agendar cita</title>
+  <link rel="stylesheet" href="registro.css">
+  <link rel="stylesheet" href="compartido.css">
+
+  <!-- Supabase debe cargarse antes de config.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="script.js" defer></script>
+  <script src="site.js" defer></script>
+</head>
+<body>
+
+<header>
+  <nav class="horizontal">
+    <img src="imagenes/logo.png.png" alt="VacuNet logo" class="imagen" data-contenido-img="logo_img">
+
+    <div class="menu-container">
+      <button class="menu-toggle" type="button" onclick="toggleMenu()">
+        <span class="menu-icono">☰</span> Menú
+      </button>
+      <div class="menu-dropdown" id="menuDropdown">
+        <a href="index.html" class="btn" data-contenido="nav_inicio">Inicio</a>
+        <a href="vacunas.html" class="btn" data-contenido="nav_vacunas">Vacunas Disponibles</a>
+        <a href="agendar.html" class="btn" data-contenido="nav_agendar">Agendar cita</a>
+        <a href="mis-citas.html" class="btn" data-contenido="nav_miscitas">Mis citas</a>
+        <a href="resultados.html" class="btn" data-contenido="nav_resultados">Resultados</a>
+        <a href="conocenos.html" class="btn" data-contenido="nav_conocenos">Conócenos</a>
+      </div>
+    </div>
+
+    <div class="buscador">
+      <input type="text" id="buscar-input" placeholder="Buscar" oninput="filtrarProductos()">
+      <span class="buscador-icono">🔍</span>
+    </div>
+
+    <div class="cuenta-container" id="cuentaContainer"></div>
+  </nav>
+</header>
+
+<section class="login-section">
+  <div class="login-caja" style="max-width:520px">
+    <h1 data-contenido="agendar_titulo">Agenda tu cita</h1>
+    <p class="login-subtitulo" data-contenido="agendar_subtitulo">Atendemos de lunes a viernes. Déjanos tus datos y el centro confirmará tu cita.</p>
+
+    <form id="form-cita" class="login-form">
+      <label for="a-vacuna">Vacuna</label>
+      <select id="a-vacuna" required>
+        <option value="" disabled selected>Cargando vacunas...</option>
+      </select>
+
+      <label for="a-nombre">Nombre completo</label>
+      <input type="text" id="a-nombre" required maxlength="150">
+
+      <label for="a-tipo">Tipo de documento</label>
+      <select id="a-tipo" required>
+        <option value="CC">Cédula de Ciudadanía (CC)</option>
+        <option value="TI">Tarjeta de Identidad (TI)</option>
+        <option value="CE">Cédula de Extranjería (CE)</option>
+        <option value="PPT">Permiso por Protección Temporal (PPT)</option>
+      </select>
+
+      <label for="a-doc">Número de documento</label>
+      <input type="text" id="a-doc" required inputmode="numeric" pattern="[0-9]+" maxlength="20">
+
+      <label for="a-tel">Teléfono</label>
+      <input type="tel" id="a-tel" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="3000000000">
+
+      <label for="a-correo">Correo electrónico</label>
+      <input type="email" id="a-correo" placeholder="ejemplo@correo.com" maxlength="150">
+
+      <label for="a-fecha">Fecha</label>
+      <input type="date" id="a-fecha" required>
+
+      <label for="a-franja">Horario</label>
+      <select id="a-franja" required>
+        <option value="Mañana (8:00 am – 12:00 pm)">Mañana (8:00 am – 12:00 pm)</option>
+        <option value="Tarde (2:00 pm – 5:00 pm)">Tarde (2:00 pm – 5:00 pm)</option>
+      </select>
+
+      <label for="a-notas">Observaciones (opcional)</label>
+      <textarea id="a-notas" rows="3" maxlength="1000"></textarea>
+
+      <button type="submit" class="btn-hero" id="btn-solicitar">Solicitar cita</button>
+    </form>
+
+    <div id="a-exito" class="cita-exito" hidden></div>
+    <p id="a-error" role="alert" style="color:#b3261e" hidden></p>
+  </div>
+</section>
+
+<footer>
+  <section class="horario">
+    <h2 data-contenido="horario_titulo">Horario de Atención</h2>
+    <p class="horario-dias" data-contenido="horario_dias">Lunes a viernes</p>
+    <p class="horario-horas" data-contenido="horario_horas">8:00 am – 12:00 pm | 2:00 pm – 5:00 pm</p>
+    <div class="horario-contacto">
+      <p>📞 Números de contacto:</p>
+      <p data-contenido="telefonos">300 6910491 · (605) 6949633</p>
+      <p>✉️ Correo</p>
+      <p data-contenido="correo">vacunetgerencia@gmail.com</p>
+    </div>
+
+    <div class="redes-sociales">
+      <a href="https://www.instagram.com/centrodevacunasvacunet/" target="_blank" rel="noopener noreferrer" class="red-social instagram" data-contenido-href="instagram_url" aria-label="Instagram de VacuNet">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 2.2c3.2 0 3.6 0 4.85.06 1.17.06 1.97.24 2.43.42.62.24 1.06.52 1.52.98.46.46.74.9.98 1.52.18.46.36 1.26.42 2.43.06 1.25.06 1.65.06 4.85s0 3.6-.06 4.85c-.06 1.17-.24 1.97-.42 2.43-.24.62-.52 1.06-.98 1.52-.46.46-.9.74-1.52.98-.46.18-1.26.36-2.43.42-1.25.06-1.65.06-4.85.06s-3.6 0-4.85-.06c-1.17-.06-1.97-.24-2.43-.42-.62-.24-1.06-.52-1.52-.98-.46-.46-.74-.9-.98-1.52-.18-.46-.36-1.26-.42-2.43C2.2 15.6 2.2 15.2 2.2 12s0-3.6.06-4.85c.06-1.17.24-1.97.42-2.43.24-.62.52-1.06.98-1.52.46-.46.9-.74 1.52-.98.46-.18 1.26-.36 2.43-.42C8.4 2.2 8.8 2.2 12 2.2zm0 1.8c-3.15 0-3.52 0-4.76.06-1.02.05-1.57.21-1.93.35-.49.19-.84.41-1.2.78-.37.36-.6.71-.78 1.2-.14.36-.3.91-.35 1.93C3.02 8.48 3 8.85 3 12s0 3.52.06 4.76c.05 1.02.21 1.57.35 1.93.19.49.41.84.78 1.2.36.37.71.6 1.2.78.36.14.91.3 1.93.35 1.24.06 1.61.06 4.76.06s3.52 0 4.76-.06c1.02-.05 1.57-.21 1.93-.35.49-.19.84-.41 1.2-.78.37-.36.6-.71.78-1.2.14-.36.3-.91.35-1.93.06-1.24.06-1.61.06-4.76s0-3.52-.06-4.76c-.05-1.02-.21-1.57-.35-1.93-.19-.49-.41-.84-.78-1.2-.36-.37-.71-.6-1.2-.78-.36-.14-.91-.3-1.93-.35C15.52 4 15.15 4 12 4zm0 3.4a4.6 4.6 0 1 1 0 9.2 4.6 4.6 0 0 1 0-9.2zm0 1.8a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6zm5.85-2.6a1.08 1.08 0 1 1-2.16 0 1.08 1.08 0 0 1 2.16 0z"/>
+        </svg>
+      </a>
+      <a href="https://share.google/VeERjBKpU0XD1O4zR" target="_blank" rel="noopener noreferrer" class="red-social facebook" data-contenido-href="facebook_url" aria-label="Facebook de VacuNet">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.83c0-2.52 1.5-3.91 3.78-3.91 1.1 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/>
+        </svg>
+      </a>
+    </div>
+  </section>
+</footer>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  function mostrarError(mensaje) {
+    $('a-error').textContent = mensaje;
+    $('a-error').hidden = false;
+  }
+
+  function fechaLocalISO() {
+    const ahora = new Date();
+    ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset());
+    return ahora.toISOString().slice(0, 10);
+  }
+
+  async function cargarVacunas() {
+    const select = $('a-vacuna');
+    select.innerHTML = '<option value="">Selecciona una vacuna</option>';
+
+    const { data, error } = await db
+      .from('vacunas')
+      .select('id,nombre')
+      .eq('activo', true)
+      .eq('categoria', 'vacuna')
+      .order('orden', { ascending: true });
+
+    if (error) {
+      console.error('Error al cargar vacunas:', error);
+      select.innerHTML = '<option value="">No se pudieron cargar las vacunas</option>';
+      mostrarError('No se pudieron cargar las vacunas. Recarga la página o comunícate con VacuNet.');
+      return;
+    }
+
+    (data || []).forEach(v => {
+      const option = document.createElement('option');
+      option.value = v.id;
+      option.textContent = v.nombre;
+      select.appendChild(option);
+    });
+
+    const solicitada = new URLSearchParams(location.search).get('vacuna');
+    if (solicitada) select.value = solicitada;
+
+    if (select.options.length === 1) {
+      select.innerHTML = '<option value="">No hay vacunas disponibles actualmente</option>';
+    }
+  }
+
+async function iniciarPagina() {
+  if (typeof db === 'undefined') {
+    mostrarError('No se encontró la conexión con Supabase. Revisa config.js.');
+    $('btn-solicitar').disabled = true;
+    return;
+  }
+
+  // Comprobar que el paciente haya iniciado sesión en Supabase
+  const { data, error } = await db.auth.getSession();
+
+  if (error) {
+    mostrarError('No se pudo verificar tu sesión. Intenta nuevamente.');
+    $('btn-solicitar').disabled = true;
+    return;
+  }
+
+  if (!data.session) {
+    alert('Para agendar una cita primero debes iniciar sesión.');
+    localStorage.setItem('vacunet_destino', 'agendar.html');
+    window.location.href = 'iniciar-sesion.html';
+    return;
+  }
+
+  // Establecer fecha mínima: hoy
+  $('a-fecha').min = fechaLocalISO();
+
+  // Cargar los datos del paciente desde su cuenta
+  const usuario = JSON.parse(
+    localStorage.getItem('vacunet_usuario') || 'null'
+  );
+
+  if (usuario) {
+    $('a-nombre').value = usuario.nombre || '';
+    $('a-tipo').value = usuario.tipoDocumento || 'CC';
+    $('a-doc').value = usuario.numeroDocumento || '';
+    $('a-tel').value = usuario.telefono || '';
+    $('a-correo').value = usuario.correo || '';
+  }
+
+  await cargarVacunas();
+}
+
+
+  $('form-cita').addEventListener('submit', async event => {
+    event.preventDefault();
+    $('a-error').hidden = true;
+
+    if (!db) {
+      mostrarError('No hay conexión con Supabase. Revisa config.js.');
+      return;
+    }
+
+    const fecha = $('a-fecha').value;
+    const dia = new Date(fecha + 'T12:00:00').getDay();
+
+    if (dia === 0 || dia === 6) {
+      mostrarError('Atendemos de lunes a viernes. Elige otro día.');
+      return;
+    }
+
+    if (fecha < fechaLocalISO()) {
+      mostrarError('No puedes seleccionar una fecha anterior a hoy.');
+      return;
+    }
+
+    if (!$('a-vacuna').value) {
+      mostrarError('Selecciona una vacuna disponible.');
+      return;
+    }
+
+    const boton = $('btn-solicitar');
+    boton.disabled = true;
+    boton.textContent = 'Enviando solicitud...';
+
+    try {
+      const { data: sessionData, error: sessionError } = await db.auth.getSession();
+
+if (sessionError) throw sessionError;
+
+if (!sessionData.session) {
+  throw new Error('Debes iniciar sesión para solicitar una cita.');
+}
+
+      const vacunaSeleccionada = $('a-vacuna').selectedOptions[0];
+      const registro = {
+        user_id: sessionData.session ? sessionData.session.user.id : null,
+        nombre: $('a-nombre').value.trim(),
+        tipo_documento: $('a-tipo').value,
+        documento: $('a-doc').value.trim(),
+        telefono: $('a-tel').value.trim(),
+        correo: $('a-correo').value.trim() || null,
+        vacuna: vacunaSeleccionada.textContent,
+        fecha,
+        franja: $('a-franja').value,
+        notas: $('a-notas').value.trim() || null
+      };
+
+      const { error } = await db.from('citas').insert(registro);
+      if (error) throw error;
+
+      $('form-cita').hidden = true;
+      $('a-exito').hidden = false;
+      $('a-exito').textContent =
+        '¡Solicitud recibida! ' + registro.vacuna + ' · ' + registro.fecha +
+        ' · ' + registro.franja + '. El centro confirmará tu cita contigo.';
+    } catch (error) {
+      console.error('Error al registrar la cita:', error);
+      mostrarError('No pudimos registrar tu cita: ' + error.message);
+      boton.disabled = false;
+      boton.textContent = 'Solicitar cita';
+    }
+  });
+
+  window.addEventListener('DOMContentLoaded', iniciarPagina);
+})();
+
+</script>
+</body>
+</html>

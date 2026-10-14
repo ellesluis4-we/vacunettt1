@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VacuNet - Mis citas</title>
+  <link rel="stylesheet" href="compartido.css">
+  <link rel="stylesheet" href="registro.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="script.js" defer></script>
+  <script src="site.js" defer></script>
+  <style>
+    .mis-citas-contenedor{max-width:1050px;margin:40px auto;padding:0 18px}
+    .mis-citas-caja{background:#fff;border-radius:16px;padding:26px;box-shadow:0 8px 28px rgba(10,61,110,.08)}
+    .mis-citas-caja h1{margin-top:0}
+    .cita-item{border:1px solid #dce7ef;border-radius:13px;padding:18px;margin:16px 0}
+    .cita-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+    .cita-dato small{display:block;color:#60758a;margin-bottom:4px}
+    .cita-dato strong{overflow-wrap:anywhere}
+    .estado-cita{display:inline-block;border-radius:20px;padding:5px 12px;background:#fff4d6;color:#805500;font-weight:600}
+    .estado-confirmada{background:#e2f5e9;color:#176b36}
+    .estado-cancelada{background:#fde8e7;color:#a12622}
+    .mensaje-citas{padding:16px;border-radius:10px;background:#f2f7fb;color:#29445e}
+    .boton-citas{display:inline-block;padding:10px 18px;border-radius:24px;background:#0e5fa8;color:white;text-decoration:none;border:0;cursor:pointer;margin:8px 8px 8px 0}
+    .boton-secundario{background:#eaf2f8;color:#0a3d6e}
+  </style>
+</head>
+<body>
+
+<header>
+  <nav class="horizontal">
+    <img src="imagenes/logo.png.png" alt="VacuNet logo" class="imagen">
+
+    <div class="menu-container">
+      <button class="menu-toggle" type="button" onclick="toggleMenu()">
+        <span class="menu-icono">☰</span> Menú
+      </button>
+      <div class="menu-dropdown" id="menuDropdown">
+        <a href="index.html" class="btn">Inicio</a>
+        <a href="vacunas.html" class="btn">Vacunas Disponibles</a>
+        <a href="agendar.html" class="btn">Agendar cita</a>
+        <a href="resultados.html" class="btn">Resultados</a>
+        <a href="conocenos.html" class="btn">Conócenos</a>
+      </div>
+    </div>
+
+    <div class="buscador">
+      <input type="text" id="buscar-input" placeholder="Buscar" oninput="filtrarProductos()">
+      <span class="buscador-icono">🔍</span>
+    </div>
+
+    <div class="cuenta-container" id="cuentaContainer"></div>
+  </nav>
+</header>
+
+<main class="mis-citas-contenedor">
+  <section class="mis-citas-caja">
+    <h1>Mis citas apartadas</h1>
+    <p>Consulta las solicitudes de citas que has realizado en VacuNet.</p>
+
+    <div id="estado-pagina" class="mensaje-citas">Comprobando tu cuenta...</div>
+    <div id="lista-mis-citas"></div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const estadoPagina = document.getElementById('estado-pagina');
+  const lista = document.getElementById('lista-mis-citas');
+
+  const escapar = valor => String(valor ?? '').replace(/[&<>"']/g, caracter => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[caracter]));
+
+  const fechaBonita = fecha => {
+    if (!fecha) return 'No indicada';
+    // Se interpreta como fecha local para evitar que cambie de día por zona horaria.
+    const partes = fecha.split('-').map(Number);
+    if (partes.length !== 3 || partes.some(Number.isNaN)) return escapar(fecha);
+    return new Date(partes[0], partes[1] - 1, partes[2]).toLocaleDateString('es-CO', {
+      day: 'numeric', month: 'long', year: 'numeric'
+    });
+  };
+
+  function mostrarMensaje(texto) {
+    estadoPagina.hidden = false;
+    estadoPagina.textContent = texto;
+  }
+
+  async function cargarMisCitas() {
+    if (typeof db === 'undefined') {
+      mostrarMensaje('No se pudo conectar con Supabase. Verifica el archivo config.js.');
+      return;
+    }
+
+    try {
+      const { data: userData, error: userError } = await db.auth.getUser();
+
+      if (userError) throw userError;
+
+      const usuario = userData.user;
+      if (!usuario) {
+        mostrarMensaje('Para consultar tus citas debes iniciar sesión con la cuenta con la que las agendaste.');
+        const enlace = document.createElement('a');
+        enlace.href = 'iniciar-sesion.html?redirect=mis-citas.html';
+        enlace.className = 'boton-citas';
+        enlace.textContent = 'Iniciar sesión';
+        estadoPagina.appendChild(document.createElement('br'));
+        estadoPagina.appendChild(enlace);
+        return;
+      }
+
+      mostrarMensaje('Cargando tus citas...');
+
+      const { data: citas, error } = await db
+        .from('citas')
+        .select('id,nombre,vacuna,fecha,franja,notas,estado,creado_en')
+        .eq('user_id', usuario.id)
+        .order('fecha', { ascending: false });
+
+      if (error) throw error;
+
+      estadoPagina.hidden = true;
+      lista.innerHTML = '';
+
+      if (!citas || citas.length === 0) {
+        mostrarMensaje('Todavía no tienes citas asociadas a esta cuenta. Recuerda iniciar sesión antes de agendar una nueva cita.');
+        const enlace = document.createElement('a');
+        enlace.href = 'agendar.html';
+        enlace.className = 'boton-citas';
+        enlace.textContent = 'Agendar una cita';
+        estadoPagina.appendChild(document.createElement('br'));
+        estadoPagina.appendChild(enlace);
+        return;
+      }
+
+      citas.forEach(cita => {
+        const estado = cita.estado || 'Pendiente';
+        let claseEstado = '';
+        if (estado === 'Confirmada') claseEstado = 'estado-confirmada';
+        if (estado === 'Cancelada') claseEstado = 'estado-cancelada';
+
+        const tarjeta = document.createElement('article');
+        tarjeta.className = 'cita-item';
+        tarjeta.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <h2 style="margin:0 0 14px">Cita #${Number(cita.id)}</h2>
+            <span class="estado-cita ${claseEstado}">${escapar(estado)}</span>
+          </div>
+          <div class="cita-grid">
+            <div class="cita-dato"><small>Paciente</small><strong>${escapar(cita.nombre)}</strong></div>
+            <div class="cita-dato"><small>Vacuna</small><strong>${escapar(cita.vacuna)}</strong></div>
+            <div class="cita-dato"><small>Fecha</small><strong>${escapar(fechaBonita(cita.fecha))}</strong></div>
+            <div class="cita-dato"><small>Horario solicitado</small><strong>${escapar(cita.franja)}</strong></div>
+          </div>
+          <p><strong>Observaciones:</strong> ${escapar(cita.notas || 'Ninguna')}</p>
+        `;
+        lista.appendChild(tarjeta);
+      });
+
+      const actualizar = document.createElement('button');
+      actualizar.type = 'button';
+      actualizar.className = 'boton-citas boton-secundario';
+      actualizar.textContent = 'Actualizar mis citas';
+      actualizar.addEventListener('click', cargarMisCitas);
+      lista.appendChild(actualizar);
+
+    } catch (error) {
+      console.error('Error al consultar mis citas:', error);
+      mostrarMensaje('No se pudieron consultar tus citas: ' + error.message);
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', cargarMisCitas);
+})();
+</script>
+</body>
+</html>

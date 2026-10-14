@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VacuNet · Administración</title>
+  <meta name="robots" content="noindex">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+    :root{--azul:#0E5FA8;--oscuro:#0A3D6E;--teal:#0EA5A0;--dorado:#F5A623;--fondo:#F5F9FC;--borde:#DCE7EF;--texto:#0B2540;--suave:#4C6178}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--fondo);color:var(--texto)}
+    h1,h2,h3{font-family:'Baloo 2',sans-serif;color:var(--oscuro);margin:0 0 .5em}
+    header{background:#fff;border-bottom:1px solid var(--borde);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5;gap:12px}
+    main{max-width:1200px;margin:0 auto;padding:24px}
+    .card{background:#fff;border:1px solid var(--borde);border-radius:16px;padding:24px;margin-bottom:20px}
+    .tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+    .tabs button{border:1px solid var(--borde);background:#fff;border-radius:999px;padding:10px 18px;font:600 .95rem Inter;cursor:pointer;color:var(--suave)}
+    .tabs button.on{background:var(--azul);border-color:var(--azul);color:#fff}
+    label{display:block;font-weight:600;font-size:.88rem;margin:12px 0 4px}
+    input,textarea,select{width:100%;padding:10px 12px;border:1px solid var(--borde);border-radius:10px;font:inherit;background:#fff}
+    input[type=checkbox]{width:auto}
+    textarea{min-height:90px;resize:vertical}
+    .fila{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+    button.p{background:var(--teal);color:#fff;border:0;border-radius:999px;padding:11px 24px;font:600 1rem 'Baloo 2';cursor:pointer;margin-top:16px}
+    button.s{background:#fff;border:1px solid var(--borde);border-radius:999px;padding:7px 14px;font:500 .85rem Inter;cursor:pointer}
+    button.d{color:#B3261E}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .tabla-wrap{width:100%;overflow-x:auto;margin-top:14px}
+    table{width:100%;border-collapse:collapse;font-size:.9rem;min-width:650px}
+    td,th{padding:10px 8px;border-bottom:1px solid var(--borde);text-align:left;vertical-align:middle}
+    th{background:#f7fafc}
+    .mini{width:44px;height:44px;border-radius:8px;object-fit:cover;background:var(--fondo)}
+    .off{opacity:.5}
+    #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--oscuro);color:#fff;padding:12px 22px;border-radius:999px;display:none;z-index:9;max-width:90%;text-align:center}
+    .hide{display:none!important}
+    #login{max-width:400px;margin:12vh auto}
+    .muted{color:var(--suave)}
+    :focus-visible{outline:3px solid var(--dorado);outline-offset:2px}
+    @media(max-width:600px){header{padding:12px;align-items:flex-start;flex-direction:column}main{padding:14px}.card{padding:16px}}
+  </style>
+</head>
+<body>
+
+<div id="login" class="card">
+  <h1>Administración VacuNet</h1>
+  <p class="muted">Ingresa con la cuenta autorizada del centro.</p>
+  <form id="f-login">
+    <label for="l-mail">Correo</label>
+    <input type="email" id="l-mail" required autocomplete="username">
+    <label for="l-pass">Contraseña</label>
+    <input type="password" id="l-pass" required autocomplete="current-password">
+    <button class="p" id="btn-login" style="width:100%">Entrar</button>
+    <p id="login-error" role="alert" style="color:#b3261e" hidden></p>
+  </form>
+</div>
+
+<div id="panel" class="hide">
+  <header>
+    <strong style="font-family:'Baloo 2';color:var(--oscuro)">VacuNet · Administración</strong>
+    <span><a href="index.html" target="_blank" rel="noopener">Ver sitio</a> &nbsp; <button class="s" id="salir" type="button">Cerrar sesión</button></span>
+  </header>
+
+  <main>
+    <div class="tabs">
+      <button type="button" data-t="cat" class="on">Catálogo y promociones</button>
+      <button type="button" data-t="cont">Contenido del sitio</button>
+      <button type="button" data-t="res">Resultados</button>
+      <button type="button" data-t="citas">Citas agendadas</button>
+    </div>
+
+    <section id="t-cat">
+      <div class="card">
+        <h2 id="cat-titulo">Agregar al catálogo</h2>
+        <form id="f-cat">
+          <input type="hidden" id="c-id">
+          <div class="fila">
+            <div><label for="c-nombre">Nombre</label><input id="c-nombre" required></div>
+            <div><label for="c-cat">Tipo</label><select id="c-cat"><option value="vacuna">Vacuna</option><option value="producto">Producto</option></select></div>
+          </div>
+          <label for="c-desc">Descripción</label><textarea id="c-desc"></textarea>
+          <div class="fila">
+            <div><label for="c-precio">Precio (COP)</label><input type="number" id="c-precio" min="0" placeholder="Vacío = consultar"></div>
+            <div><label for="c-dcto">Descuento (%)</label><input type="number" id="c-dcto" min="0" max="100" value="0"></div>
+            <div><label for="c-promo">Texto de promoción</label><input id="c-promo" placeholder="Ej: Oferta para estudiantes"></div>
+            <div><label for="c-orden">Orden</label><input type="number" id="c-orden" value="0"></div>
+          </div>
+          <label for="c-img">Imagen</label><input type="file" id="c-img" accept="image/*">
+          <label><input type="checkbox" id="c-activo" checked> Visible en el sitio</label>
+          <button class="p">Guardar</button>
+          <button type="button" class="s" id="c-cancel">Limpiar</button>
+        </form>
+      </div>
+      <div class="card"><h2>Catálogo actual</h2><div class="tabla-wrap"><table id="lista-cat"></table></div></div>
+    </section>
+
+    <section id="t-cont" class="hide">
+      <div class="card"><h2>Textos e imágenes de la página principal</h2><form id="f-cont"></form></div>
+    </section>
+
+    <section id="t-res" class="hide">
+      <div class="card">
+        <h2>Subir resultado</h2>
+        <form id="f-res">
+          <div class="fila">
+            <div><label for="r-doc">Documento</label><input id="r-doc" required inputmode="numeric"></div>
+            <div><label for="r-nombre">Nombre del paciente</label><input id="r-nombre" required></div>
+            <div><label for="r-vacuna">Vacuna</label><select id="r-vacuna"></select></div>
+            <div><label for="r-dosis">Dosis</label><input type="number" id="r-dosis" min="1" value="1" required></div>
+            <div><label for="r-fecha">Fecha</label><input type="date" id="r-fecha" required></div>
+            <div><label for="r-estado">Estado</label><select id="r-estado"><option>Aplicada</option><option>Pendiente</option><option>Programada</option></select></div>
+          </div>
+          <button class="p">Guardar resultado</button>
+        </form>
+      </div>
+      <div class="card"><h2>Últimos resultados</h2><div class="tabla-wrap"><table id="lista-res"></table></div></div>
+    </section>
+
+    <section id="t-citas" class="hide">
+      <div class="card">
+        <h2>Citas agendadas</h2>
+        <p class="muted">Solicitudes recibidas desde el formulario público de VacuNet.</p>
+        <button class="p" type="button" id="actualizar-citas">Actualizar citas</button>
+        <div class="tabla-wrap"><table id="lista-citas"></table></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast" role="status"></div>
+
+<script>
+const $ = selector => document.querySelector(selector);
+const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+  '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+}[char]));
+const COP = value => value == null ? '—' : '$' + Number(value).toLocaleString('es-CO');
+const aviso = message => {
+  const element = $('#toast');
+  element.textContent = message;
+  element.style.display = 'block';
+  setTimeout(() => element.style.display = 'none', 2600);
+};
+
+const CAMPOS = [
+  ['hero_titulo','Título principal','text'],
+  ['hero_subtitulo','Subtítulo','text'],
+  ['hero_imagen','Imagen principal','img'],
+  ['mision','Misión','area'],
+  ['vision','Visión','area'],
+  ['horario_dias','Días de atención','text'],
+  ['horario_horas','Horas de atención','text'],
+  ['telefonos','Teléfonos','text'],
+  ['correo','Correo de contacto','text'],
+  ['promo_banner_texto','Texto del banner de promoción','text'],
+  ['promo_banner_activo','Mostrar el banner de promoción','bool']
+];
+
+let catalogo = [];
+
+function mostrarErrorLogin(message) {
+  $('#login-error').textContent = message;
+  $('#login-error').hidden = false;
+}
+
+async function subir(file) {
+  const ruta = Date.now() + '-' + file.name.replace(/[^\w.-]/g, '_');
+  const { error } = await db.storage.from('imagenes').upload(ruta, file, { upsert: true });
+  if (error) throw error;
+  return db.storage.from('imagenes').getPublicUrl(ruta).data.publicUrl;
+}
+
+// Comprueba la sesión y que el usuario actual esté en public.admins.
+async function entrar() {
+  const { data: userData, error: userError } = await db.auth.getUser();
+  if (userError || !userData.user) {
+    $('#panel').classList.add('hide');
+    $('#login').classList.remove('hide');
+    return;
+  }
+
+  const { data: adminData, error: adminError } = await db
+    .from('admins')
+    .select('user_id')
+    .eq('user_id', userData.user.id)
+    .maybeSingle();
+
+  if (adminError || !adminData) {
+    alert('Esta cuenta no tiene permisos de administrador.');
+    await db.auth.signOut();
+    $('#panel').classList.add('hide');
+    $('#login').classList.remove('hide');
+    return;
+  }
+
+  $('#login').classList.add('hide');
+  $('#panel').classList.remove('hide');
+
+  await Promise.all([
+    cargarCat(),
+    cargarCont(),
+    cargarRes(),
+    cargarCitas()
+  ]);
+}
+
+$('#f-login').addEventListener('submit', async event => {
+  event.preventDefault();
+  $('#login-error').hidden = true;
+  $('#btn-login').disabled = true;
+
+  try {
+    const { error } = await db.auth.signInWithPassword({
+      email: $('#l-mail').value.trim(),
+      password: $('#l-pass').value
+    });
+    if (error) throw error;
+    await entrar();
+  } catch (error) {
+    mostrarErrorLogin('No se pudo iniciar sesión: ' + error.message);
+  } finally {
+    $('#btn-login').disabled = false;
+  }
+});
+
+$('#salir').addEventListener('click', async () => {
+  await db.auth.signOut();
+  location.reload();
+});
+
+document.querySelectorAll('.tabs button').forEach(button => {
+  button.addEventListener('click', async () => {
+    document.querySelectorAll('.tabs button').forEach(item =>
+      item.classList.toggle('on', item === button)
+    );
+    ['cat','cont','res','citas'].forEach(tab => {
+      $('#t-' + tab).classList.toggle('hide', tab !== button.dataset.t);
+    });
+    if (button.dataset.t === 'citas') await cargarCitas();
+  });
+});
+
+// ----- Catálogo -----
+async function cargarCat() {
+  const { data, error } = await db.from('vacunas').select('*').order('orden');
+  if (error) {
+    $('#lista-cat').innerHTML = `<tr><td>Error al cargar catálogo: ${esc(error.message)}</td></tr>`;
+    return;
+  }
+
+  catalogo = data || [];
+  $('#lista-cat').innerHTML =
+    '<tr><th></th><th>Nombre</th><th>Precio</th><th>Promoción</th><th>Acciones</th></tr>' +
+    catalogo.map(v => `
+      <tr class="${v.activo ? '' : 'off'}">
+        <td>${v.imagen_url ? `<img class="mini" src="${esc(v.imagen_url)}" alt="">` : '💉'}</td>
+        <td>${esc(v.nombre)}<br><small>${esc(v.categoria)}${v.activo ? '' : ' · oculto'}</small></td>
+        <td>${COP(v.precio)}</td>
+        <td>${v.descuento_pct ? esc(v.descuento_pct) + '% ' : ''}${esc(v.promo_texto || '')}</td>
+        <td><button class="s" type="button" onclick="editar(${Number(v.id)})">Editar</button>
+        <button class="s d" type="button" onclick="borrar(${Number(v.id)})">Eliminar</button></td>
+      </tr>`).join('');
+
+  $('#r-vacuna').innerHTML = catalogo
+    .filter(v => v.categoria === 'vacuna')
+    .map(v => `<option>${esc(v.nombre)}</option>`).join('');
+}
+
+function editar(id) {
+  const vacuna = catalogo.find(item => Number(item.id) === Number(id));
+  if (!vacuna) return;
+
+  $('#cat-titulo').textContent = 'Editar: ' + vacuna.nombre;
+  $('#c-id').value = vacuna.id;
+  $('#c-nombre').value = vacuna.nombre;
+  $('#c-cat').value = vacuna.categoria;
+  $('#c-desc').value = vacuna.descripcion || '';
+  $('#c-precio').value = vacuna.precio ?? '';
+  $('#c-dcto').value = vacuna.descuento_pct || 0;
+  $('#c-promo').value = vacuna.promo_texto || '';
+  $('#c-orden').value = vacuna.orden ?? 0;
+  $('#c-activo').checked = Boolean(vacuna.activo);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function limpiar() {
+  $('#f-cat').reset();
+  $('#c-id').value = '';
+  $('#cat-titulo').textContent = 'Agregar al catálogo';
+}
+
+$('#c-cancel').addEventListener('click', limpiar);
+
+$('#f-cat').addEventListener('submit', async event => {
+  event.preventDefault();
+  try {
+    const fila = {
+      nombre: $('#c-nombre').value.trim(),
+      categoria: $('#c-cat').value,
+      descripcion: $('#c-desc').value,
+      precio: $('#c-precio').value === '' ? null : Number($('#c-precio').value),
+      descuento_pct: Number($('#c-dcto').value) || 0,
+      promo_texto: $('#c-promo').value || null,
+      orden: Number($('#c-orden').value) || 0,
+      activo: $('#c-activo').checked
+    };
+
+    if ($('#c-img').files[0]) fila.imagen_url = await subir($('#c-img').files[0]);
+
+    const id = $('#c-id').value;
+    const result = id
+      ? await db.from('vacunas').update(fila).eq('id', id)
+      : await db.from('vacunas').insert(fila);
+
+    if (result.error) throw result.error;
+    aviso('Catálogo guardado');
+    limpiar();
+    await cargarCat();
+  } catch (error) {
+    alert('No se pudo guardar: ' + error.message);
+  }
+});
+
+async function borrar(id) {
+  if (!confirm('¿Eliminar este elemento del catálogo?')) return;
+  const { error } = await db.from('vacunas').delete().eq('id', id);
+  if (error) return alert('No se pudo eliminar: ' + error.message);
+  aviso('Elemento eliminado');
+  await cargarCat();
+}
+
+// ----- Contenido del sitio (todos los textos, imágenes, enlaces, colores y listas) -----
+const PAGINAS = [['index.html','Inicio'],['vacunas.html','Vacunas'],['resultados.html','Resultados'],['conocenos.html','Conócenos'],['iniciar-sesion.html','Iniciar sesión'],['registro.html','Registro'],['agendar.html','Agendar cita']];
+const GLOBAL = 'Todas las páginas (menú, logo y pie de página)';
+const TEMA = [['tema_azul','Azul principal','#0E5FA8'],['tema_azul_oscuro','Azul oscuro (títulos)','#0A3D6E'],['tema_teal','Verde (botones)','#0EA5A0'],['tema_dorado','Dorado (acentos)','#F5A623'],['tema_fondo','Fondo','#F5F9FC'],['tema_texto','Color del texto','#0B2540']];
+let valores = [], equipo = [];
+const bonito = k => { const s = k.replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
+
+function campoHTML(k, f, valor) {
+  const had = f.had ? ' data-had="1"' : '';
+  const d = ` data-d="${esc(f.def)}"${had}`;
+  if (f.tipo === 'img') return `<label>${bonito(k)}</label>${valor ? `<img class="mini" style="width:120px;height:auto" src="${esc(valor)}" alt=""><br>` : ''}<input type="file" accept="image/*" data-k="${k}" data-img="1">`;
+  if ((valor || '').length > 90) return `<label>${bonito(k)}</label><textarea data-k="${k}"${d}>${esc(valor)}</textarea>`;
+  return `<label>${bonito(k)}</label><input data-k="${k}"${d} value="${esc(valor)}">`;
+}
+
+function listas() {
+  $('#lv').innerHTML = valores.map((v, i) => `<div class="fila" style="align-items:end"><div><label>Título</label><input value="${esc(v.titulo)}" oninput="valores[${i}].titulo=this.value"></div><div><label>Texto</label><input value="${esc(v.texto)}" oninput="valores[${i}].texto=this.value"></div><div><button type="button" class="s d" onclick="valores.splice(${i},1);listas()">Quitar</button></div></div>`).join('');
+  $('#le').innerHTML = equipo.map((p, i) => `<div class="fila" style="align-items:end"><div><label>Nombre</label><input value="${esc(p.nombre)}" oninput="equipo[${i}].nombre=this.value"></div><div><label>Cargo</label><input value="${esc(p.cargo)}" oninput="equipo[${i}].cargo=this.value"></div><div><label>Foto ${p.foto ? '(ya cargada)' : ''}</label><input type="file" accept="image/*" onchange="equipo[${i}]._f=this.files[0]"></div><div><button type="button" class="s d" onclick="equipo.splice(${i},1);listas()">Quitar</button></div></div>`).join('');
+}
+
+async function cargarCont() {
+  const { data, error } = await db.from('contenido').select('*');
+  if (error) { $('#f-cont').innerHTML = `<p>No se pudo cargar el contenido: ${esc(error.message)}</p>`; return; }
+  const c = Object.fromEntries((data || []).map(r => [r.clave, r.valor]));
+  const campos = {};
+  let conoc = null;
+  for (const [archivo] of PAGINAS) {
+    try {
+      const doc = new DOMParser().parseFromString(await (await fetch(archivo)).text(), 'text/html');
+      if (archivo === 'conocenos.html') conoc = doc;
+      doc.querySelectorAll('[data-contenido],[data-contenido-img],[data-contenido-href],[data-contenido-src]').forEach(el => {
+        const [tipo, k, def] = el.dataset.contenido ? ['text', el.dataset.contenido, el.textContent.trim().replace(/\s+/g, ' ')]
+          : el.dataset.contenidoImg ? ['img', el.dataset.contenidoImg, el.getAttribute('src')]
+          : el.dataset.contenidoHref ? ['url', el.dataset.contenidoHref, el.getAttribute('href')]
+          : ['url', el.dataset.contenidoSrc, el.getAttribute('src')];
+        (campos[k] = campos[k] || { tipo, def: def || '', paginas: new Set(), pag: archivo, had: k in c }).paginas.add(archivo);
+      });
+    } catch (e) { /* si una página no carga, se omite */ }
+  }
+  const grupos = {};
+  Object.entries(campos).forEach(([k, f]) => {
+    const g = f.paginas.size >= 4 ? GLOBAL : PAGINAS.find(p => p[0] === f.pag)[1];
+    (grupos[g] = grupos[g] || []).push([k, f]);
+  });
+  let h = '<p style="color:var(--suave)">Aquí puedes cambiar cualquier texto, imagen o enlace del sitio. Lo que no cambies se queda como está.</p>';
+  for (const g of [GLOBAL, ...PAGINAS.map(p => p[1])]) {
+    if (grupos[g]) h += `<h3 style="margin-top:24px">${g}</h3>` + grupos[g].map(([k, f]) => campoHTML(k, f, k in c ? c[k] : f.def)).join('');
+  }
+  h += '<h3 style="margin-top:24px">Colores del sitio</h3><div class="fila">' + TEMA.map(([k, t, d]) => `<div><label>${t}</label><input type="color" data-k="${k}" data-color="1" value="${esc(c[k] || d)}"></div>`).join('') + '</div>';
+  h += `<h3 style="margin-top:24px">Banner de promoción</h3><label>Texto del banner</label><input data-k="promo_banner_texto" data-color="1" value="${esc(c.promo_banner_texto)}"><label><input type="checkbox" data-k="promo_banner_activo" data-color="1" ${c.promo_banner_activo === 'true' ? 'checked' : ''}> Mostrar el banner</label>`;
+  const q = (doc, sel, fn) => doc ? [...doc.querySelectorAll(sel)].map(fn) : [];
+  valores = c.lista_valores ? JSON.parse(c.lista_valores) : q(conoc, '.valor-card', e => ({ titulo: e.querySelector('h3').textContent.trim(), texto: e.querySelector('p').textContent.trim() }));
+  equipo = c.lista_equipo ? JSON.parse(c.lista_equipo) : q(conoc, '.equipo-card', e => ({ nombre: e.querySelector('h3').textContent.trim(), cargo: e.querySelector('p').textContent.trim(), foto: (e.querySelector('img') || {}).src ? e.querySelector('img').getAttribute('src') : '' }));
+  h += '<h3 style="margin-top:24px">Valores (página Conócenos)</h3><div id="lv"></div><button type="button" class="s" onclick="valores.push({titulo:\'\',texto:\'\'});listas()">+ Agregar valor</button>';
+  h += '<h3 style="margin-top:24px">Equipo (página Conócenos)</h3><div id="le"></div><button type="button" class="s" onclick="equipo.push({nombre:\'\',cargo:\'\',foto:\'\'});listas()">+ Agregar persona</button>';
+  $('#f-cont').innerHTML = h + '<br><button class="p">Guardar cambios del sitio</button>';
+  listas();
+}
+
+$('#f-cont').addEventListener('submit', async event => {
+  event.preventDefault();
+  try {
+    const filas = [];
+    for (const el of document.querySelectorAll('#f-cont [data-k]')) {
+      if (el.dataset.img) { if (el.files[0]) filas.push({ clave: el.dataset.k, valor: await subir(el.files[0]) }); continue; }
+      const valor = el.type === 'checkbox' ? String(el.checked) : el.value;
+      // Solo se guarda lo que cambió (o lo que ya estaba guardado), para no tapar el texto original de las páginas
+      if (el.dataset.color || el.dataset.had || valor !== el.dataset.d) filas.push({ clave: el.dataset.k, valor });
+    }
+    for (const p of equipo) if (p._f) { p.foto = await subir(p._f); delete p._f; }
+    filas.push({ clave: 'lista_valores', valor: JSON.stringify(valores) },
+               { clave: 'lista_equipo', valor: JSON.stringify(equipo.map(({ nombre, cargo, foto }) => ({ nombre, cargo, foto }))) });
+    const { error } = await db.from('contenido').upsert(filas, { onConflict: 'clave' });
+    if (error) throw error;
+    aviso('Sitio actualizado');
+    await cargarCont();
+  } catch (error) {
+    alert('No se pudo guardar: ' + error.message);
+  }
+});
+
+// ----- Resultados -----
+async function cargarRes() {
+  const { data, error } = await db.from('resultados')
+    .select('*').order('id', { ascending: false }).limit(50);
+
+  if (error) {
+    $('#lista-res').innerHTML = `<tr><td>Error al cargar resultados: ${esc(error.message)}</td></tr>`;
+    return;
+  }
+
+  $('#lista-res').innerHTML =
+    '<tr><th>Documento</th><th>Paciente</th><th>Vacuna</th><th>Dosis</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr>' +
+    (data || []).map(row => `
+      <tr>
+        <td>${esc(row.documento)}</td><td>${esc(row.nombre)}</td><td>${esc(row.vacuna)}</td>
+        <td>${esc(row.dosis)}</td><td>${esc(row.fecha)}</td><td>${esc(row.estado)}</td>
+        <td><button class="s d" type="button" onclick="borrarRes(${Number(row.id)})">Eliminar</button></td>
+      </tr>`).join('');
+}
+
+$('#f-res').addEventListener('submit', async event => {
+  event.preventDefault();
+  const { error } = await db.from('resultados').insert({
+    documento: $('#r-doc').value.trim(),
+    nombre: $('#r-nombre').value.trim(),
+    vacuna: $('#r-vacuna').value,
+    dosis: Number($('#r-dosis').value),
+    fecha: $('#r-fecha').value,
+    estado: $('#r-estado').value
+  });
+
+  if (error) return alert('No se pudo guardar: ' + error.message);
+  aviso('Resultado guardado');
+  $('#f-res').reset();
+  await cargarRes();
+});
+
+async function borrarRes(id) {
+  if (!confirm('¿Eliminar este resultado?')) return;
+  const { error } = await db.from('resultados').delete().eq('id', id);
+  if (error) return alert('No se pudo eliminar: ' + error.message);
+  await cargarRes();
+}
+
+// ----- Citas agendadas -----
+const encabezadoCitas = `
+  <tr>
+    <th>Paciente</th><th>Documento</th><th>Teléfono</th><th>Correo</th>
+    <th>Vacuna</th><th>Fecha</th><th>Horario</th><th>Observaciones</th>
+    <th>Estado</th><th>Acciones</th>
+  </tr>`;
+
+async function cargarCitas() {
+  const tabla = $('#lista-citas');
+  tabla.innerHTML = encabezadoCitas + '<tr><td colspan="10">Cargando citas...</td></tr>';
+
+  const { data, error } = await db.from('citas')
+    .select('id,nombre,tipo_documento,documento,telefono,correo,vacuna,fecha,franja,notas,estado')
+    .order('fecha', { ascending: false });
+
+  if (error) {
+    tabla.innerHTML = encabezadoCitas +
+      `<tr><td colspan="10">No se pudieron cargar las citas: ${esc(error.message)}</td></tr>`;
+    console.error('Error al consultar citas:', error);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    tabla.innerHTML = encabezadoCitas + '<tr><td colspan="10">Todavía no hay citas agendadas.</td></tr>';
+    return;
+  }
+
+  tabla.innerHTML = encabezadoCitas + data.map(cita => `
+    <tr>
+      <td>${esc(cita.nombre)}</td>
+      <td>${esc(cita.tipo_documento)}: ${esc(cita.documento)}</td>
+      <td>${esc(cita.telefono)}</td>
+      <td>${esc(cita.correo || 'No registrado')}</td>
+      <td>${esc(cita.vacuna)}</td>
+      <td>${esc(cita.fecha)}</td>
+      <td>${esc(cita.franja)}</td>
+      <td>${esc(cita.notas || 'Sin observaciones')}</td>
+      <td>
+        <select aria-label="Estado de cita ${Number(cita.id)}"
+          onchange="cambiarEstadoCita(${Number(cita.id)}, this.value)">
+          <option value="Pendiente" ${cita.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+          <option value="Confirmada" ${cita.estado === 'Confirmada' ? 'selected' : ''}>Confirmada</option>
+          <option value="Cancelada" ${cita.estado === 'Cancelada' ? 'selected' : ''}>Cancelada</option>
+        </select>
+      </td>
+      <td><button class="s d" type="button" onclick="borrarCita(${Number(cita.id)})">Eliminar</button></td>
+    </tr>`).join('');
+}
+
+async function cambiarEstadoCita(id, estado) {
+  const estadosPermitidos = ['Pendiente', 'Confirmada', 'Cancelada'];
+  if (!estadosPermitidos.includes(estado)) return;
+
+  const { error } = await db.from('citas').update({ estado }).eq('id', id);
+  if (error) {
+    alert('No se pudo actualizar el estado: ' + error.message);
+    await cargarCitas();
+    return;
+  }
+  aviso('Estado de la cita actualizado');
+  await cargarCitas();
+}
+
+async function borrarCita(id) {
+  if (!confirm('¿Estás seguro de eliminar esta cita?')) return;
+  const { error } = await db.from('citas').delete().eq('id', id);
+  if (error) {
+    alert('No se pudo eliminar la cita: ' + error.message);
+    return;
+  }
+  aviso('Cita eliminada');
+  await cargarCitas();
+}
+
+$('#actualizar-citas').addEventListener('click', cargarCitas);
+
+// Evita que el panel falle silenciosamente si falta config.js o db.
+(async function iniciar() {
+  if (typeof db === 'undefined') {
+    mostrarErrorLogin('No se encontró la conexión con Supabase. Verifica config.js.');
+    $('#btn-login').disabled = true;
+    return;
+  }
+  const { data, error } = await db.auth.getSession();
+  if (error) {
+    mostrarErrorLogin('No se pudo comprobar la sesión: ' + error.message);
+    return;
+  }
+  if (data.session) await entrar();
+})();
+</script>
+</body>
+</html>

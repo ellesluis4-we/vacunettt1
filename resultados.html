@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VacuNet - Resultados</title>
+    <link rel="stylesheet" href="resultados.css">
+    <link rel="stylesheet" href="compartido.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.js" defer></script>
+    <script src="config.js" defer></script>
+    <script src="script.js" defer></script>
+    <script src="site.js" defer></script>
+</head>
+<body>
+
+<header>
+  <nav class="horizontal">
+    <img src="imagenes/logo.png.png" alt="VacuNet logo" class="imagen">
+
+    <div class="menu-container">
+      <button class="menu-toggle" onclick="toggleMenu()">
+        <span class="menu-icono">☰</span> Menú
+      </button>
+      <div class="menu-dropdown" id="menuDropdown">
+    <a href="index.html" class="btn">Inicio</a>
+    <a href="vacunas.html" class="btn">Vacunas Disponibles</a>
+    <a href="agendar.html" class="btn">Agendar cita</a>
+    <a href="mis-citas.html" class="btn">Mis citas</a>
+    <a href="resultados.html" class="btn">Resultados</a>
+    <a href="conocenos.html" class="btn">Conócenos</a>
+</div>
+    </div>
+
+    <div class="buscador">
+      <input type="text" id="buscar-input" placeholder="Buscar" oninput="filtrarProductos()">
+      <span class="buscador-icono">🔍</span>
+    </div>
+
+    <div class="cuenta-container" id="cuentaContainer"></div>
+  </nav>
+</header>
+
+  <section class="resultados-consulta">
+    <h1>Consulta tus Resultados</h1>
+    <p class="resultados-intro">Ingresa tu número de documento para ver el estado de tu vacunación.</p>
+
+    <form class="resultados-form" id="form-resultados">
+      <label for="cedula">Número de documento</label>
+      <input type="text" id="cedula" name="cedula" placeholder="Ej: 1234567890" required inputmode="numeric" pattern="[0-9]*">
+      <button type="submit" class="btn-hero">Consultar</button>
+    </form>
+  </section>
+
+  <footer>
+    <section class="horario">
+      <h2>Horario de Atención</h2>
+      <p class="horario-dias" data-contenido="horario_dias">Lunes a viernes</p>
+      <p class="horario-horas" data-contenido="horario_horas">8:00 am – 12:00 pm &nbsp;|&nbsp; 2:00 pm – 5:00 pm</p>
+      <div class="horario-contacto">
+        <p>📞 Numeros de contacto:</p>
+        <p data-contenido="telefonos">300 6910491 &nbsp;·&nbsp; (605) 6949633</p>
+        <p>✉️Correo</p>
+        <p data-contenido="correo"> vacunetgerencia@gmail.com</p>
+      </div>
+
+      <div class="redes-sociales">
+        <a href="https://www.instagram.com/centrodevacunasvacunet/" target="_blank" rel="noopener noreferrer" class="red-social instagram" aria-label="Instagram de VacuNet">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M12 2.2c3.2 0 3.6 0 4.85.06 1.17.06 1.97.24 2.43.42.62.24 1.06.52 1.52.98.46.46.74.9.98 1.52.18.46.36 1.26.42 2.43.06 1.25.06 1.65.06 4.85s0 3.6-.06 4.85c-.06 1.17-.24 1.97-.42 2.43-.24.62-.52 1.06-.98 1.52-.46.46-.9.74-1.52.98-.46.18-1.26.36-2.43.42-1.25.06-1.65.06-4.85.06s-3.6 0-4.85-.06c-1.17-.06-1.97-.24-2.43-.42-.62-.24-1.06-.52-1.52-.98-.46-.46-.74-.9-.98-1.52-.18-.46-.36-1.26-.42-2.43C2.2 15.6 2.2 15.2 2.2 12s0-3.6.06-4.85c.06-1.17.24-1.97.42-2.43.24-.62.52-1.06.98-1.52.46-.46.9-.74 1.52-.98.46-.18 1.26-.36 2.43-.42C8.4 2.2 8.8 2.2 12 2.2zm0 1.8c-3.15 0-3.52 0-4.76.06-1.02.05-1.57.21-1.93.35-.49.19-.84.41-1.2.78-.37.36-.6.71-.78 1.2-.14.36-.3.91-.35 1.93C3.02 8.48 3 8.85 3 12s0 3.52.06 4.76c.05 1.02.21 1.57.35 1.93.19.49.41.84.78 1.2.36.37.71.6 1.2.78.36.14.91.3 1.93.35 1.24.06 1.61.06 4.76.06s3.52 0 4.76-.06c1.02-.05 1.57-.21 1.93-.35.49-.19.84-.41 1.2-.78.37-.36.6-.71.78-1.2.14-.36.3-.91.35-1.93.06-1.24.06-1.61.06-4.76s0-3.52-.06-4.76c-.05-1.02-.21-1.57-.35-1.93-.19-.49-.41-.84-.78-1.2-.36-.37-.71-.6-1.2-.78-.36-.14-.91-.3-1.93-.35C15.52 4 15.15 4 12 4zm0 3.4a4.6 4.6 0 1 1 0 9.2 4.6 4.6 0 0 1 0-9.2zm0 1.8a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6zm5.85-2.6a1.08 1.08 0 1 1-2.16 0 1.08 1.08 0 0 1 2.16 0z"/>
+          </svg>
+        </a>
+        <a href="https://share.google/VeERjBKpU0XD1O4zR" target="_blank" rel="noopener noreferrer" class="red-social facebook" aria-label="Facebook de VacuNet">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.91h2.54V9.83c0-2.52 1.5-3.91 3.78-3.91 1.1 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.88h2.78l-.44 2.91h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94z"/>
+          </svg>
+        </a>
+      </div>
+    </section>
+  </footer>
+
+  <script>
+    // Protege la página: solo usuarios con sesión activa pueden consultar
+    if (localStorage.getItem('vacunet_sesion') !== 'activa') {
+      localStorage.setItem('vacunet_destino', 'resultados.html');
+      window.location.href = 'iniciar-sesion.html';
+    }
+
+    document.getElementById('form-resultados').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const cedula = document.getElementById('cedula').value.trim();
+      window.location.href = 'resultado.html?documento=' + encodeURIComponent(cedula);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+.promo-banner{background:var(--dorado,#F5A623);color:#0B2540;text-align:center;padding:10px 16px;font-weight:600}
+.precio{margin:0 0 12px;font-weight:700;color:var(--azul-oscuro,#0A3D6E)}
+.precio s{color:var(--texto-suave,#4C6178);font-weight:400;margin-right:6px}
+.precio .consultar{font-weight:500;color:var(--texto-suave,#4C6178)}
+.etiqueta-promo{display:inline-block;margin:0 0 10px;padding:4px 12px;border-radius:999px;background:#FFF1D6;color:#8A5200;font-size:.85rem;font-weight:600}
+.vacuna-card .sin-foto{height:90px;display:grid;place-items:center;font-size:2rem}
